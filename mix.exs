@@ -1,11 +1,11 @@
-defmodule Graphitex.Mixfile do
+defmodule Metrics.Mixfile do
   use Mix.Project
 
-  @description "Carbon wrapper for Elixir."
+  @description "Collect and periodically send metrics"
 
   def project do
     [
-        app: :graphitex,
+        app: :metrics,
         version: "0.0.1",
         elixir: "~> 1.0",
         deps: deps,

@@ -7,7 +7,7 @@ defmodule Metrics.Interface do
   and periodically sends them to a Grafana server.
   """
 
-  @appname :grafitex
+  @app :metrics
   @module __MODULE__
   @epoch_seconds 719528 * 24 * 3600
   @tcp_connect_opts [:binary, {:packet, 0}]
@@ -188,7 +188,7 @@ defmodule Metrics.Interface do
   end
 
   defp get_env(key, default) do
-    Application.get_env(@appname, key, default)    
+    Application.get_env(@app, key, default)    
   end
 
   # defp debug(msg) do
