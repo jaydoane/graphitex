@@ -16,11 +16,15 @@ defmodule Graphitex.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    dev_apps = Mix.env == :dev && [:reprise] || []
+    [applications: dev_apps ++ [:logger],
+     mod: {Metrics, []}]
   end
 
   defp deps do
-    []
+    [
+        {:reprise, "~> 0.3.0", only: :dev}
+    ]
   end
 
   defp package do
