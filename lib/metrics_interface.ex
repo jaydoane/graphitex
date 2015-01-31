@@ -53,7 +53,7 @@ defmodule Metrics.Interface do
   Initialize the interface state and immediately timeout, which triggers a send
   """
   def init([]) do
-    info("info")
+    info("init")
     host_port = get_env(:carbon_host_port, @default_carbon_host_port)
     prefix = get_env(:prefix, @default_prefix)
     interval = get_env(:interval, @default_interval)
