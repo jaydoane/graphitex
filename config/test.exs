@@ -1,6 +1,14 @@
 use Mix.Config
 
-# Use host as a tuple: {127, 0, 0, 1}
+port = 20037
 
-config :carbon, host: {}
-config :carbon, port: 2003
+config :logger, :console,
+  level: :warn
+
+config :tcp_listener,
+  port: port
+
+config :metrics,
+  carbon_host_port: {"localhost", port},
+  interval: 10,
+  prefix: "test.metrics."
