@@ -7,10 +7,10 @@ defmodule Metrics.Interface do
   and periodically sends them to a Grafana server.
   """
 
-  @app :metrics
+  @app_env :metrics
   @module __MODULE__
   @epoch_seconds 719528 * 24 * 3600
-  @tcp_connect_opts [:binary, {:packet, 0}]
+  @tcp_connect_opts [:binary, packet: 0]
 
   @default_carbon_host_port {"127.0.0.1", 2003}
   @default_prefix "metric."
@@ -53,10 +53,10 @@ defmodule Metrics.Interface do
   Initialize the interface state and immediately timeout, which triggers a send
   """
   def init([]) do
-    info("init")
     host_port = get_env(:carbon_host_port, @default_carbon_host_port)
     prefix = get_env(:prefix, @default_prefix)
     interval = get_env(:interval, @default_interval)
+    info("init #{inspect host_port} #{inspect prefix} #{inspect interval}")
     {:ok, localhost} = :inet.gethostname
     state = %Metrics.Interface{host_port: host_port,
                                prefix: prefix,
@@ -66,7 +66,6 @@ defmodule Metrics.Interface do
   end
 
   def handle_info(:timeout, %{interval: interval}=state) do
-    # debug("handle_info timeout #{inspect state}"
     state = send(state)
     timeout_after(interval)
     {:noreply, state}
@@ -84,7 +83,6 @@ defmodule Metrics.Interface do
     {:noreply, state}
   end
 
-  @doc "Reply with the value of the specified metric"
   def handle_call({:get, metric}, _from, %{metrics: metrics}=state) do
     {:reply, metrics[metric], state}
   end
@@ -97,12 +95,10 @@ defmodule Metrics.Interface do
     state = send(state)
     {:noreply, state}
   end
-  @doc "Handle the :stop message"
   def handle_cast(:stop, state) do
     {:stop, :normal, state}
   end
 
-  @doc "Terminate the server"
   def terminate(reason, %{socket: socket}) do
     info("terminate reason: #{inspect reason}")
     case socket do
@@ -111,7 +107,6 @@ defmodule Metrics.Interface do
     end
   end
 
-  @doc "Code change handler"
   def code_change(_from_version, state, _extra) do
     {:ok, state}
   end
@@ -123,24 +118,28 @@ defmodule Metrics.Interface do
     :erlang.send_after(interval, self, :timeout)
   end
 
+  # no-op when host_port unconfigured (useful for dev)
   defp send(%{host_port: nil}=state) do
     state
   end
+  # try to connect if socket is closed
   defp send(%{socket: nil}=state) do
     case connect(state) do
       %{socket: nil}=state ->
         state
       state ->
-        send()
+        send() # socket is open, so immediately cast another send
         state
     end
   end
-  defp send(%{socket: socket}=state) do
-    data = format(state)
+  # try to send if socket is open
+  defp send(%{socket: socket, localhost: localhost, metrics: metrics}=state) do
+    data = format(localhost, metrics)
     case :gen_tcp.send(socket, data) do
       :ok ->
         %{state | metrics: %{}}
       {:error, reason} ->
+        # just kidding, socket isn't really open after all!
         info("send error #{inspect reason} #{inspect data}")
         %{state | socket: nil}
     end
@@ -172,10 +171,9 @@ defmodule Metrics.Interface do
     end
   end
 
-  defp format(%{localhost: localhost, metrics: metrics}) do
-    format(localhost, metrics)
-    # "test data\n"
-  end
+  # defp format(%{localhost: localhost, metrics: metrics}) do
+  #   format(localhost, metrics)
+  # end
 
   def format(localhost, metrics) do
     ts = timestamp()
@@ -188,7 +186,7 @@ defmodule Metrics.Interface do
   end
 
   defp get_env(key, default) do
-    Application.get_env(@app, key, default)    
+    Application.get_env(@app_env, key, default)    
   end
 
   # defp debug(msg) do
